@@ -30,11 +30,29 @@ from .nodes import (
     plot_ranking_victorias,
     calcular_ranking_derrotas,
     plot_ranking_derrotas,
+    calcular_winrate_500_1500,
+    calcular_winrate_1500_2500,
+    plot_winrate_500_1500,
+    plot_winrate_1500_2500,
+    guardar_particion_final,
+    procesar_particion
 )
 
 def create_pipeline(**kwargs) -> Pipeline:
     return Pipeline(
         [
+            node(
+                func=procesar_particion,
+                inputs="aoe_2_h2",
+                outputs="intermediate_particion_final",
+                name="procesar_particion_node",
+            ),
+            node(
+                func=guardar_particion_final,
+                inputs="intermediate_particion_final",
+                outputs="particion_final_csv",
+                name="guardar_particion_final_node",
+            ),
             node(func=load_data, inputs="params:filepath", outputs="raw_data", name="load_data_node"),
             node(func=print_data_info, inputs="raw_data", outputs=None, name="print_data_info_node"),
             node(func=identify_null_rows, inputs="raw_data", outputs="data_with_nulls_identified", name="identify_null_rows_node"),
@@ -65,5 +83,9 @@ def create_pipeline(**kwargs) -> Pipeline:
             node(func=plot_ranking_victorias, inputs=["victory_ranking", "civilization_colors"], outputs=None, name="plot_ranking_victorias_node"),
             node(func=calcular_ranking_derrotas, inputs="victory_loss_differences", outputs="defeat_ranking", name="calcular_ranking_derrotas_node"),
             node(func=plot_ranking_derrotas, inputs=["defeat_ranking", "civilization_colors"], outputs=None, name="plot_ranking_derrotas_node"),
+            node(func=calcular_winrate_500_1500, inputs="particion_final", outputs="winrate_df_1500", name="calcular_winrate_500_1500_node"),
+            node(func=calcular_winrate_1500_2500, inputs="particion_final", outputs="winrate_df_2500", name="calcular_winrate_1500_2500_node"),
+            node(func=plot_winrate_500_1500, inputs=["winrate_df_1500", "civilization_colors"], outputs=None, name="plot_winrate_500_1500_node"),
+            node(func=plot_winrate_1500_2500, inputs=["winrate_df_2500", "civilization_colors"], outputs=None, name="plot_winrate_1500_2500_node"),
         ]
     )

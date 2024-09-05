@@ -1,8 +1,22 @@
 # Import necessary libraries
 import pandas as pd
+from typing import Dict
 import matplotlib.pyplot as plt
 
 # Nodes
+
+def procesar_particion(aoe_2_h2: pd.DataFrame) -> pd.DataFrame:
+    # Aquí va tu lógica de procesamiento para generar particion_final
+    particion_final = aoe_2_h2.copy()  # Ejemplo, ajusta según tu lógica
+    # Resto de la lógica de procesamiento
+    return particion_final
+
+def guardar_particion_final(particion_final: pd.DataFrame) -> None:
+    # Guardar particion_final como CSV
+    filepath = "data/02_intermediate/particion_final.csv"
+    particion_final.to_csv(filepath, index=False)
+                           
+
 
 def load_data(filepath: str) -> pd.DataFrame:
     """Carga datos desde un archivo CSV."""
@@ -257,3 +271,105 @@ def plot_ranking_derrotas(ranking_derrotas: pd.DataFrame, colores_civilizaciones
     plt.ylabel('Diferencia de Victorias')
     plt.xticks(rotation=45)
     plt.show()
+
+def calcular_winrate_500_1500(particion_final):
+    filtro_rating = particion_final[
+        (particion_final['promedio_rating'] >= 500) &
+        (particion_final['promedio_rating'] <= 1500)
+    ]
+
+    victorias = filtro_rating.groupby(['civilizacion_win', 'civilizacion_lose']).size().reset_index(name='victorias')
+    derrotas = filtro_rating.groupby(['civilizacion_lose', 'civilizacion_win']).size().reset_index(name='derrotas')
+
+    victorias.rename(columns={'civilizacion_win': 'civilizacion', 'civilizacion_lose': 'oponente'}, inplace=True)
+    derrotas.rename(columns={'civilizacion_lose': 'civilizacion', 'civilizacion_win': 'oponente'}, inplace=True)
+
+    winrate_df_1500 = pd.merge(victorias, derrotas, on=['civilizacion', 'oponente'], how='outer').fillna(0)
+    winrate_df_1500['total_juegos'] = winrate_df_1500['victorias'] + winrate_df_1500['derrotas']
+    winrate_df_1500['winrate'] = winrate_df_1500['victorias'] / winrate_df_1500['total_juegos']
+    winrate_df_1500['winrate_percent'] = winrate_df_1500['winrate'] * 100
+    winrate_df_1500.columns = ['Civilización', 'Oponente', 'Victorias', 'Derrotas', 'Total Juegos', 'Win Rate', 'Win Rate (%)']
+    winrate_df_1500 = winrate_df_1500.sort_values(by='Win Rate (%)', ascending=False)
+    
+    return winrate_df_1500
+
+def calcular_winrate_1500_2500(particion_final):
+    # Filtrar partidas con rating entre 1500 y 2500
+    filtro_rating = particion_final[
+        (particion_final['promedio_rating'] >= 1500) &
+        (particion_final['promedio_rating'] <= 2500)
+    ]
+
+    # Calcular victorias y derrotas
+    victorias = filtro_rating.groupby(['civilizacion_win', 'civilizacion_lose']).size().reset_index(name='victorias')
+    derrotas = filtro_rating.groupby(['civilizacion_lose', 'civilizacion_win']).size().reset_index(name='derrotas')
+
+    # Renombrar columnas
+    victorias.rename(columns={'civilizacion_win': 'civilizacion', 'civilizacion_lose': 'oponente'}, inplace=True)
+    derrotas.rename(columns={'civilizacion_lose': 'civilizacion', 'civilizacion_win': 'oponente'}, inplace=True)
+
+    # Combinar datos y calcular winrate
+    winrate_df_2500 = pd.merge(victorias, derrotas, on=['civilizacion', 'oponente'], how='outer').fillna(0)
+    winrate_df_2500['total_juegos'] = winrate_df_2500['victorias'] + winrate_df_2500['derrotas']
+    winrate_df_2500['winrate'] = winrate_df_2500['victorias'] / winrate_df_2500['total_juegos']
+    winrate_df_2500['winrate_percent'] = winrate_df_2500['winrate'] * 100
+    
+    # Renombrar columnas finales
+    winrate_df_2500.columns = ['Civilización', 'Oponente', 'Victorias', 'Derrotas', 'Total Juegos', 'Win Rate', 'Win Rate (%)']
+    
+    # Ordenar por winrate descendente
+    winrate_df_2500 = winrate_df_2500.sort_values(by='Win Rate (%)', ascending=False)
+
+    return winrate_df_2500
+
+def plot_winrate_500_1500(winrate_df_1500: pd.DataFrame, colores_civilizaciones: Dict[str, str]) -> None:
+    top_10_resultados = winrate_df_1500.head(10)
+    bar_colors = [colores_civilizaciones[civ] for civ in top_10_resultados['Civilización']]
+
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(
+        top_10_resultados['Civilización'] + " vs " + top_10_resultados['Oponente'],
+        top_10_resultados['Win Rate (%)'],
+        color=bar_colors
+    )
+
+    plt.xticks(rotation=45, ha='right')
+    plt.xlabel('Civilización vs Oponente')
+    plt.ylabel('Win Rate (%)')
+    plt.title('Top 10 Win Rates por Civilización contra Oponente en Ratings de 500 a 1500')
+    plt.ylim(0, 100)
+
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2, yval + 1, f'{round(yval, 1)}%', ha='center', va='bottom', fontsize=10)
+
+    plt.tight_layout()
+    plt.savefig('winrate_500_1500.png')
+    plt.close()
+
+def plot_winrate_1500_2500(winrate_df_2500: pd.DataFrame, colores_civilizaciones: dict):
+    top_10_resultados = winrate_df_2500.head(10)
+    bar_colors = [colores_civilizaciones.get(civ, 'gray') for civ in top_10_resultados['Civilización']]
+
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(
+        top_10_resultados['Civilización'] + " vs " + top_10_resultados['Oponente'],
+        top_10_resultados['Win Rate (%)'],
+        color=bar_colors
+    )
+
+    plt.xticks(rotation=45, ha='right')
+    plt.xlabel('Civilización vs Oponente')
+    plt.ylabel('Win Rate (%)')
+    plt.title('Top 10 Win Rates por Civilización contra Oponente en Ratings de 1500 a 2500')
+    plt.ylim(0, 100)
+
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2, yval + 1, f'{round(yval, 1)}%', ha='center', va='bottom', fontsize=10)
+
+    plt.tight_layout()
+    plt.savefig('winrate_1500_2500.png')
+    plt.close()
+
+    return None

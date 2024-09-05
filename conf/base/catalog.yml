@@ -2,10 +2,12 @@ raw_data:
   type: pandas.CSVDataset
   filepath: data/01_raw/match_players.csv
 
-average_rating_by_match:
-  type: pandas.ParquetDataset
-  filepath: data/02_intermediate/average_rating_by_match.parquet
+aoe_2_h2:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/aoe_2_h2.csv
 
-data_no_outliers:
-  type: pandas.ParquetDataset
-  filepath: data/03_primary/data_no_outliers.parquet
+particion_final_csv:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/particion_final.csv
+  save_args:
+    index: False
